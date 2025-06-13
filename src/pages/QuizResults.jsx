@@ -8,7 +8,7 @@ function QuizResults() {
   const location = useLocation();
   const navigate = useNavigate();
   const [results, setResults] = useState(location.state?.results || null);
-  const [loading, setLoading] = useState(!location.state?.results);
+  const [loading, setLoading] = useState(!location.state?.results); 
   const [error, setError] = useState(null);
 
   useEffect(() => {
