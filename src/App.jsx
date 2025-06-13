@@ -12,7 +12,7 @@ import QuizResults from './pages/QuizResults'
 import CreateQuiz from './pages/CreateQuiz'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminLogin from './pages/AdminLogin'
-import AdminDashboard from './pages/AdminDashboard'
+import AdminDashboard from './pages/AdminDashboard' 
 
 // Protected route for admin
 const ProtectedAdminRoute = () => {
