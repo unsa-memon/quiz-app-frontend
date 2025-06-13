@@ -13,7 +13,7 @@ function Navbar() {
   useEffect(() => {
     // Fetch user data if authenticated
     const fetchUser = async () => {
-      try {
+      try { 
         const response = await getUserProfile()
         if (response && response.data) {
           setUser({
