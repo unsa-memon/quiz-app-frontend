@@ -5,7 +5,7 @@ import axios from 'axios'
 function Login() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
-  const [emailError, setEmailError] = useState('')
+  const [emailError, setEmailError] = useState('') 
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   
