@@ -4,7 +4,7 @@ import { getAllUsers, deleteUser, deleteQuiz } from '../utils/adminApi';
 
 function AdminDashboard() {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); 
   const [error, setError] = useState('');
   const [expandedUser, setExpandedUser] = useState(null);
   const navigate = useNavigate();
