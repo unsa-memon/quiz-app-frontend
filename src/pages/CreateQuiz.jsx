@@ -6,7 +6,7 @@ import { ToastContainer } from 'react-toastify'
 function CreateQuiz() {
   const navigate = useNavigate();
 
-  return (
+  return ( 
     <div className="min-h-screen bg-gray-50 border border-black">
       <div className="container mx-auto px-4 py-8 border-x border-black min-h-screen">
         <div className="max-w-4xl mx-auto">
