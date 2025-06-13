@@ -13,7 +13,7 @@ function QuizPage() {
   const [error, setError] = useState(null)
   const [showQuizStart, setShowQuizStart] = useState(false)
 
-  useEffect(() => {
+  useEffect(() => { 
     const fetchQuiz = async () => {
       try {
         setLoading(true)
