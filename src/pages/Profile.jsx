@@ -3,7 +3,7 @@ import { getUserHistory } from '../utils/api';
 import { FiAward, FiClock, FiBarChart2, FiCalendar, FiUser, FiMail, FiBookOpen, FiArrowLeft } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 
-function Profile() {
+function Profile() { 
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(() => {
