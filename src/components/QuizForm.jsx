@@ -10,7 +10,7 @@ function QuizForm() {
     subject: '',
     duration: '',
     questions: [{ type: 'MCQ', questionText: '', options: ['', '', '', ''], correctAnswer: '', marks: 1 }]
-  })
+  }) 
   const navigate = useNavigate()
 
   const handleQuestionChange = (index, field, value) => {
