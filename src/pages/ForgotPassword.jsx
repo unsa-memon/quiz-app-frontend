@@ -11,7 +11,7 @@ function ForgotPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await forgotPassword({ email })
+      await forgotPassword({ email }) 
       setMessage('Password reset email sent!')
       setTimeout(() => navigate('/login'), 3000)
     } catch (err) {
