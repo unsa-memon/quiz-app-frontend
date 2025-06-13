@@ -9,7 +9,7 @@ function Signup() {
   const navigate = useNavigate()
   
   const validateEmail = (email) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/ 
     return re.test(email)
   }
   
