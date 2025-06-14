@@ -8,7 +8,7 @@ function QuizResults() {
   const location = useLocation();
   const navigate = useNavigate();
   const [results, setResults] = useState(location.state?.results || null);
-  const [loading, setLoading] = useState(!location.state?.results); 
+  const [loading, setLoading] = useState(!location.state?.results);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -136,108 +136,97 @@ function QuizResults() {
   // Debug the results structure
   console.log('Full results data:', JSON.stringify(results, null, 2));
   
-  // Safely destructure with defaults - try different possible structures
-  const { 
-    score = 0, 
-    totalMarks = 0, 
-    timeTaken = 0, 
-    correctAnswers = 0, 
-    totalQuestions = 0, 
-    quiz = {},
-    attempt = {},
-    questions: quizQuestions = [],
-    userAnswers: userResponses = [],
-    // Alternative structure
-    data: {
-      quiz: altQuiz = {},
-      attempt: altAttempt = {},
-      questions: altQuestions = [],
-      answers: altAnswers = []
-    } = {}
-  } = results || {};
+  // Safely destructure with defaults from the API response
+  const resultData = results?.data || results;
+  const {
+    score = 0,
+    totalPossibleScore = 0,
+    percentage = 0,
+    timeTaken = 0,
+    responses = [],
+    quizTitle = 'Quiz',
+    subject = ''
+  } = resultData || {};
+  
+  // Calculate correct answers count
+  const correctCount = Array.isArray(responses) 
+    ? responses.filter(response => response.isCorrect).length 
+    : 0;
+    
+  const totalQuestionsCount = Array.isArray(responses) ? responses.length : 0;
   
   // Extract questions and answers from the responses array
   let questions = [];
   let userAnswers = [];
-  let correctCount = 0;
-  let totalQuestionsCount = 0;
-  let accuracy = 0;
   
-  if (Array.isArray(results?.responses)) {
-    console.log('Found responses array with length:', results.responses.length);
-    
-    // Calculate correct answers count and statistics
-    correctCount = results.responses.filter(response => response.isCorrect).length;
-    totalQuestionsCount = results.responses.length;
-    accuracy = totalQuestionsCount > 0 ? Math.round((correctCount / totalQuestionsCount) * 100) : 0;
+  if (Array.isArray(responses)) {
+    console.log('Found responses array with length:', responses.length);
     
     // Map responses to questions format
-    questions = results.responses.map((response, index) => {
-    const question = {
-      _id: response.questionId || `q-${index}`,
-      text: response.questionText || `Question ${index + 1}`,
-      options: [],
-      correctOption: response.correctAnswer,
-      marks: response.marks || 1,
-      questionType: response.questionType || 'MCQ',
-      responseData: response
-    };
+    questions = responses.map((response, index) => {
+      const question = {
+        _id: response.questionId || `q-${index}`,
+        text: response.questionText || `Question ${index + 1}`,
+        options: [],
+        correctOption: response.correctAnswer,
+        marks: response.marks || 1,
+        questionType: response.questionType || 'MCQ',
+        responseData: response
+      };
 
-    // For MCQ questions, create options with their correct/incorrect status
-    if (response.questionType === 'MCQ' && Array.isArray(response.options)) {
-      question.options = response.options.map((option, i) => ({
-        id: i,
-        text: option,
-        isCorrect: Array.isArray(response.correctAnswer) 
-          ? response.correctAnswer.includes(i) 
-          : response.correctAnswer === i,
-        isSelected: response.selectedAnswer === i
-      }));
-    } 
-    // For fill-in-the-blank questions
-    else if (response.questionType === 'Fill') {
-      question.options = [{
-        id: 0,
-        text: response.selectedAnswer || 'No answer provided',
-        isCorrect: response.isCorrect,
-        isSelected: true
-      }];
-    }
+      // For MCQ questions, create options with their correct/incorrect status
+      if (response.questionType === 'MCQ' && Array.isArray(response.options)) {
+        question.options = response.options.map((option, i) => ({
+          id: i,
+          text: option,
+          isCorrect: Array.isArray(response.correctAnswer) 
+            ? response.correctAnswer.includes(i) 
+            : response.correctAnswer === i,
+          isSelected: response.selectedAnswer === i
+        }));
+      } 
+      // For fill-in-the-blank questions
+      else if (response.questionType === 'Fill') {
+        question.options = [{
+          id: 0,
+          text: response.selectedAnswer || 'No answer provided',
+          isCorrect: response.isCorrect,
+          isSelected: true
+        }];
+      }
 
-    console.log(`Question ${index}:`, question);
-    return question;
-  });
-  
-  // Map responses to user answers format
-  userAnswers = results.responses.map((response, index) => {
-    const answer = {
+      return question;
+    });
+    
+    // Map responses to user answers format
+    userAnswers = responses.map((response, index) => ({
       questionId: response.questionId || `q-${index}`,
       selectedOption: response.selectedAnswer,
       isCorrect: response.isCorrect,
       questionIndex: index,
-      questionType: response.questionType || 'MCQ'
-    };
+      questionType: response.questionType || 'MCQ',
+      selectedOptionText: response.questionType === 'MCQ' && Array.isArray(response.options)
+        ? response.options[response.selectedAnswer]
+        : response.selectedAnswer
+    }));
 
-    // For MCQ, store the selected option text for display
-    if (response.questionType === 'MCQ' && Array.isArray(response.options)) {
-      answer.selectedOptionText = response.options[response.selectedAnswer];
-    }
-    
-    return answer;
-  });
-    
     console.log('Mapped user answers:', userAnswers);
     console.log('Processed questions:', questions);
-    console.log('Processed userAnswers:', userAnswers);
   } else {
     console.error('No responses array found in results:', results);
     setError('No quiz results found. Please try again.');
   }
   
   console.log('Final userAnswers:', userAnswers);
-  const percentage = Math.round(((score || 0) / (totalMarks || 1)) * 100);
   const timeInMinutes = ((timeTaken || 0) / 60).toFixed(1);
-  const timePerQuestion = ((timeTaken || 0) / (totalQuestions || 1)).toFixed(1);
+  const timePerQuestion = totalQuestionsCount > 0 
+    ? (timeTaken / totalQuestionsCount).toFixed(1) 
+    : 0;
+  
+  // Calculate accuracy percentage
+  const accuracy = totalQuestionsCount > 0 
+    ? Math.round((correctCount / totalQuestionsCount) * 100) 
+    : 0;
 
   if (!Array.isArray(questions) || questions.length === 0) {
     return (
@@ -389,7 +378,7 @@ function QuizResults() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div className="bg-white p-6 rounded-lg shadow-sm text-center border-2 border-black">
             <h3 className="text-lg font-medium text-gray-700 mb-2">Score</h3>
-            <div className="text-5xl font-bold text-blue-600 mb-2 border-b-2 border-black pb-2">{score}/{totalMarks}</div>
+            <div className="text-5xl font-bold text-blue-600 mb-2 border-b-2 border-black pb-2">{score}/{totalPossibleScore}</div>
             <div className="text-sm text-blue-600 font-medium mt-2">{percentage}%</div>
           </div>
           
