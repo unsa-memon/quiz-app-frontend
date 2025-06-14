@@ -3,7 +3,7 @@ import axios from 'axios'
 const api = axios.create({
   baseURL: 'http://localhost:5000/api',
   headers: {
-    'Content-Type': 'application/json', 
+    'Content-Type': 'application/json',
   },
 })
 
@@ -208,11 +208,28 @@ export const getQuizResults = async (attemptId) => {
 
 export const getUserHistory = async () => {
   try {
-    const response = await api.get('/users/history')
-    if (!response.data || !response.data.success) throw new Error(response.data?.message || 'Failed to fetch history')
-    return response.data
+    console.log('Fetching user history...');
+    const response = await api.get('/users/history');
+    console.log('History API Response:', response.data);
+    
+    if (!response.data) {
+      console.error('No data in response');
+      throw new Error('No data received from server');
+    }
+    
+    if (!response.data.success) {
+      console.error('API returned unsuccessful:', response.data);
+      throw new Error(response.data.message || 'Failed to fetch history');
+    }
+    
+    return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.message || error.message)
+    console.error('Error in getUserHistory:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    throw error; // Re-throw to be handled by the component
   }
 }
 
@@ -243,5 +260,27 @@ export const getUserAnalytics = async () => {
     return response.data
   } catch (error) {
     throw new Error(error.response?.data?.message || error.message)
+  }
+}
+
+export const getUserAverageScore = async () => {
+  try {
+    const response = await api.get('/users/average-score')
+    return response.data.data || {
+      averageScore: 0,
+      averagePercentage: 0,
+      totalAttempts: 0,
+      totalScore: 0,
+      totalPossibleMarks: 0
+    }
+  } catch (error) {
+    console.error('Error fetching average score:', error)
+    return {
+      averageScore: 0,
+      averagePercentage: 0,
+      totalAttempts: 0,
+      totalScore: 0,
+      totalPossibleMarks: 0
+    }
   }
 }
