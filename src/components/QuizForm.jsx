@@ -10,12 +10,35 @@ function QuizForm() {
     subject: '',
     duration: '',
     questions: [{ type: 'MCQ', questionText: '', options: ['', '', '', ''], correctAnswer: '', marks: 1 }]
-  }) 
+  })
   const navigate = useNavigate()
 
   const handleQuestionChange = (index, field, value) => {
     const newQuestions = [...quiz.questions]
-    newQuestions[index][field] = value
+    
+    // If changing question type
+    if (field === 'type') {
+      // If changing to Fill type, remove the options array
+      if (value === 'Fill') {
+        const { options, ...rest } = newQuestions[index]
+        newQuestions[index] = { ...rest, type: 'Fill', correctAnswer: '' }
+      } else if (value === 'MCQ' && !newQuestions[index].options) {
+        // If changing to MCQ and options don't exist, add them
+        newQuestions[index] = { 
+          ...newQuestions[index], 
+          type: 'MCQ', 
+          options: ['', '', '', ''],
+          correctAnswer: ''
+        }
+      } else {
+        // For any other case, just update the type
+        newQuestions[index].type = value
+      }
+    } else {
+      // For all other fields, just update the value
+      newQuestions[index][field] = value
+    }
+    
     setQuiz({ ...quiz, questions: newQuestions })
   }
 
@@ -30,8 +53,12 @@ function QuizForm() {
       type,
       questionText: '',
       marks: 1,
-      correctAnswer: '',
-      ...(type === 'MCQ' && { options: ['', '', '', ''] })
+      correctAnswer: ''
+    };
+    
+    // Only add options for MCQ questions
+    if (type === 'MCQ') {
+      newQuestion.options = ['', '', '', ''];
     }
     
     setQuiz({
