@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
-import { getUserHistory } from '../utils/api';
+import { getUserHistory, getUserAverageScore } from '../utils/api';
 import { FiAward, FiClock, FiBarChart2, FiCalendar, FiUser, FiMail, FiBookOpen, FiArrowLeft } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 
-function Profile() { 
+function Profile() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
+  const [stats, setStats] = useState({
+    averageScore: 0,
+    averagePercentage: 0,
+    totalAttempts: 0,
+    totalScore: 0,
+    totalPossibleMarks: 0
+  });
   const [userData, setUserData] = useState(() => {
     // Get user data from localStorage if available
     const storedUser = localStorage.getItem('user');
@@ -25,22 +34,45 @@ function Profile() {
   });
 
   useEffect(() => {
-    const fetchHistory = async () => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const response = await getUserHistory();
-        if (response.data && response.data.length > 0) {
-          console.log('Quiz history data loaded:', response.data.length, 'attempts found');
+        console.log('Fetching user history...');
+        const historyResponse = await getUserHistory();
+        console.log('History response:', historyResponse);
+        
+        if (historyResponse.data && Array.isArray(historyResponse.data)) {
+          console.log('Quiz history data loaded:', historyResponse.data.length, 'attempts found');
+          setHistory(historyResponse.data);
+        } else if (historyResponse.data) {
+          console.log('Unexpected data format, attempting to process:', historyResponse.data);
+          setHistory(Array.isArray(historyResponse.data) ? historyResponse.data : []);
+        } else {
+          console.warn('No data in history response');
+          setHistory([]);
         }
-        setHistory(response.data || []);
+
+        console.log('Fetching average score...');
+        const statsResponse = await getUserAverageScore();
+        console.log('Average score response:', statsResponse);
+        setStats({
+          averageScore: statsResponse.averageScore || 0,
+          averagePercentage: statsResponse.averagePercentage || 0,
+          totalAttempts: statsResponse.totalAttempts || 0,
+          totalScore: statsResponse.totalScore || 0,
+          totalPossibleMarks: statsResponse.totalPossibleMarks || 1
+        });
       } catch (error) {
-        console.error('Error fetching history:', error);
+        console.error('Error fetching data:', error);
+        setError(error.message || 'Failed to load profile data');
         setHistory([]);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchHistory();
+    fetchData();
     
     // Listen for storage events to update user data if it changes in another tab
     const handleStorageChange = () => {
@@ -152,22 +184,32 @@ function Profile() {
 
         {/* Stats Grid - Full width */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 w-full">
-          <div className="bg-white rounded-xl shadow-md p-6 flex items-center w-full border-2 border-black">
-            <div className="p-3 rounded-full bg-green-100 text-green-600 mr-4">
-              <FiAward size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Quizzes Taken</p>
-              <p className="text-2xl font-bold">{totalQuizzes}</p>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-indigo-50 text-indigo-600">
+                <FiAward className="w-6 h-6" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Quizzes Taken</p>
+                <p className="text-2xl font-semibold text-gray-900">{stats.totalAttempts}</p>
+              </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-md p-6 flex items-center w-full border-2 border-black">
-            <div className="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
-              <FiBarChart2 size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Average Score</p>
-              <p className="text-2xl font-bold">{averageScore}%</p>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-green-50 text-green-600">
+                <FiBarChart2 className="w-6 h-6" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Average Score</p>
+                <p 
+                  className={`text-3xl font-bold ${
+                    stats.averagePercentage >= 50 ? 'text-green-600' : 'text-red-600'
+                  }`}
+                >
+                  {stats.averagePercentage}%
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -182,50 +224,92 @@ function Profile() {
           </div>
           
           <div className="divide-y divide-gray-200">
-            {history.length === 0 ? (
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading your quiz history...</p>
+              </div>
+            ) : error ? (
+              <div className="p-8 text-center text-red-600 border-b border-black">
+                <p>Error loading quiz history: {error}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="mt-4 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : history.length === 0 ? (
               <div className="p-8 text-center text-gray-500 border-b border-black">
                 <p>You haven't taken any quizzes yet.</p>
                 <p className="mt-2">Start a quiz to see your history here!</p>
+                <Link 
+                  to="/quizzes" 
+                  className="mt-4 inline-block px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                >
+                  Browse Quizzes
+                </Link>
               </div>
             ) : (
-              history.map((attempt) => {
-                const percentage = Math.round((attempt.score / attempt.totalMarks) * 100);
-                const isExcellent = percentage >= 80;
-                const isGood = percentage >= 50 && percentage < 80;
-                
-                return (
-                  <div key={attempt._id} className="p-6 hover:bg-gray-50 transition-colors duration-200 border-b border-black last:border-b-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-                      <div className="mb-4 sm:mb-0">
-                        <h3 className="text-lg font-medium text-gray-900">{attempt.quizId?.title || 'Untitled Quiz'}</h3>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {attempt.timestamp ? formatDate(attempt.timestamp) : 'Date not available'}
+              <div className="space-y-3">
+                <div className="flex justify-end mb-4 pr-2">
+                  <div className="inline-flex rounded-lg overflow-hidden shadow-sm border border-gray-200 bg-gray-50" role="group">
+                    <button
+                      onClick={() => setSortOrder('newest')}
+                      className={`px-5 py-2 text-sm font-medium transition-colors duration-200 ${
+                        sortOrder === 'newest' 
+                          ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-inner' 
+                          : 'bg-white text-gray-600 hover:bg-gray-100 hover:text-indigo-700'
+                      }`}
+                    >
+                      Newest First
+                    </button>
+                    <div className="h-6 w-px bg-gray-200 my-1"></div>
+                    <button
+                      onClick={() => setSortOrder('oldest')}
+                      className={`px-5 py-2 text-sm font-medium transition-colors duration-200 ${
+                        sortOrder === 'oldest' 
+                          ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-inner' 
+                          : 'bg-white text-gray-600 hover:bg-gray-100 hover:text-indigo-700'
+                      }`}
+                    >
+                      Oldest First
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {[...history]
+                    .sort((a, b) => 
+                      sortOrder === 'newest' 
+                        ? new Date(b.completedAt) - new Date(a.completedAt)
+                        : new Date(a.completedAt) - new Date(b.completedAt)
+                    )
+                    .map((attempt, index) => (
+                    <div 
+                      key={attempt._id} 
+                      className="flex items-center p-3 bg-white rounded-lg border border-gray-200"
+                    >
+                      <div className="text-gray-500 w-8 text-sm font-medium">
+                        {sortOrder === 'newest' ? index + 1 : history.length - index}.
+                      </div>
+                      <div className="ml-3 flex-1 min-w-0">
+                        <p className="text-gray-900 font-medium truncate">
+                          {attempt.quizId?.title || 'Untitled Quiz'}
                         </p>
                       </div>
-                      <div className="flex items-center">
-                        <div className="relative w-24 h-2 bg-gray-200 rounded-full overflow-hidden mr-4">
-                          <div 
-                            className={`absolute top-0 left-0 h-full rounded-full ${
-                              isExcellent ? 'bg-green-500' : isGood ? 'bg-blue-500' : 'bg-yellow-500'
-                            }`}
-                            style={{ width: `${Math.min(100, percentage)}%` }}
-                          />
-                        </div>
-                        <span className={`text-sm font-medium ${
-                          isExcellent ? 'text-green-600' : isGood ? 'text-blue-600' : 'text-yellow-600'
-                        }`}>
-                          {percentage}%
-                        </span>
-                      </div>
-                      <div className="mt-4 sm:mt-0 sm:ml-4 text-right">
-                        <span className="inline-block bg-indigo-100 text-indigo-800 text-sm font-semibold px-3 py-1 rounded-full">
-                          {attempt.score} / {attempt.totalMarks}
-                        </span>
+                      <div className="ml-2 text-sm text-gray-500 whitespace-nowrap">
+                        {attempt.completedAt 
+                          ? new Date(attempt.completedAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })
+                          : 'No date'}
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
